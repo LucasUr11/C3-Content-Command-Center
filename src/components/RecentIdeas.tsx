@@ -1,5 +1,6 @@
 import { VideoContent } from "@/types/content";
 import { Lightbulb } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface RecentIdeasProps {
   ideas: VideoContent[];
@@ -12,19 +13,25 @@ const platformColor: Record<string, string> = {
 };
 
 export function RecentIdeas({ ideas }: RecentIdeasProps) {
+
+  const navigate = useNavigate();
+
   return (
     <div className="rounded-lg border border-border bg-card p-5 opacity-0 animate-fade-in" style={{ animationDelay: "320ms" }}>
+
       <div className="flex items-center gap-2 mb-4">
         <Lightbulb className="h-4 w-4 text-primary" />
         <h3 className="font-mono text-xs font-semibold uppercase tracking-widest text-foreground">
           Ideas recientes
         </h3>
       </div>
+
       <div className="space-y-3">
         {ideas.map((idea) => (
           <div
             key={idea.id}
-            className="flex items-center justify-between rounded-md border border-border bg-secondary/30 px-3 py-2.5 hover:border-primary/20 transition-colors duration-150"
+            onClick={() => navigate(`/editor?id=${idea.id}`)}
+            className="cursor-pointer hover:bg-zinc-800/50 transition-colors ..."
           >
             <div className="min-w-0">
               <p className="text-sm text-foreground truncate">{idea.title}</p>
