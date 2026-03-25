@@ -22,13 +22,16 @@ export const useContent = () => {
     }, [contents]);
 
     // 3. Función para agregar una nueva idea
-    const addContent = (newVideo: Omit<VideoContent, 'id'>) => {
-        const videoWithId: VideoContent = {
-            ...newVideo,
-            id: crypto.randomUUID()
-        };
-        setContents(prev => [...prev, videoWithId]);
+    const addContent = (newVideo: Omit<VideoContent, 'id' | 'createdAt'>) => {
+    const videoWithId: VideoContent = {
+        ...newVideo,
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString() // Se genera automáticamente aquí
     };
+    
+    setContents(prev => [...prev, videoWithId]);
+    return videoWithId;
+};
 
     // 4. Función para actualizar (guiones, estados, etc)
     const updateContent = (id: string, updates: Partial<VideoContent>) => {
