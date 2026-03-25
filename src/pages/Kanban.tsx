@@ -1,106 +1,126 @@
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useContent } from "@/hooks/useContent";
-import { ContentStatus, VideoContent } from "@/types/content";
-import { useNavigate } from "react-router-dom";
+import { Calendar as CalendarIcon, MoreVertical, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Layers } from "lucide-react";
 
-const COLUMNS: ContentStatus[] = ["Idea", "Guion", "Grabado", "Editado", "Publicado"];
+const COLUMNS = [
+  { id: "Idea", title: "Ideas" },
+  { id: "Scripting", title: "Guionando" },
+  { id: "Recording", title: "Grabando" },
+  { id: "Editing", title: "Editando" },
+  { id: "Published", title: "Publicado" },
+];
 
 export default function Kanban() {
-
-  const { contents, deleteContent } = useContent();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { contents, updateContent } = useContent();
 
-  // Función para obtener los videos de cada columna
-  const getColumnContent = (status: ContentStatus) => {
-    return contents.filter((c) => c.status === status);
+  // 1. Detectamos si venimos del Calendario con una fecha para asignar
+  const assignDate = searchParams.get("assignDate");
+
+  const handleCardClick = (id: string) => {
+    if (assignDate) {
+      // SI ESTAMOS EN MODO ASIGNACIÓN:
+      // Guardamos la fecha en la idea y volvemos al calendario
+      updateContent(id, { publishDate: assignDate });
+      navigate("/calendar");
+    } else {
+      // MODO NORMAL:
+      // Vamos al editor para trabajar en el guion
+      navigate(`/editor?id=${id}`);
+    }
   };
 
   return (
     <div className="h-full flex flex-col space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-cyan-500/10 rounded-lg">
-          <Layers className="w-5 h-5 text-cyan-500" />
-        </div>
+      {/* HEADER DEL KANBAN */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tighter text-white uppercase">Estados</h1>
-          <p className="text-xs text-zinc-500 font-mono">Visualización de procesos activos</p>
+          <h1 className="text-2xl font-bold text-white">Pipeline de Contenido</h1>
+          <p className="text-zinc-500 text-sm">Gestioná tus reviews y tutoriales de hardware</p>
         </div>
       </div>
 
-      {/* Contenedor de Columnas */}
-      <div className="flex gap-4 overflow-x-auto pb-6 h-[calc(100vh-180px)] scrollbar-thin scrollbar-thumb-zinc-800">
-        {COLUMNS.map((status) => {
-          const columnItems = getColumnContent(status);
+      {/* BANNER DE MODO ASIGNACIÓN (Solo se ve si venís del calendario) */}
+      {assignDate && (
+        <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-xl flex justify-between items-center ring-1 ring-cyan-500/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-cyan-500/20 rounded-lg">
+              <CalendarIcon className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-cyan-400 uppercase tracking-widest">Modo Planificador</p>
+              <p className="text-sm text-zinc-300">Seleccioná un video para el <span className="text-white font-bold">{new Date(assignDate).toLocaleDateString('es-AR')}</span></p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate("/kanban")}
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
 
-          return (
-            <div
-              key={status}
-              className="flex-shrink-0 w-72 flex flex-col bg-zinc-900/40 border border-zinc-800/50 rounded-2xl overflow-hidden"
-            >
-              {/* Header de Columna */}
-              <div className="p-4 border-b border-zinc-800/50 bg-zinc-900/20 flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                  {status}
+      {/* COLUMNAS */}
+      <div className="flex-1 flex gap-6 overflow-x-auto pb-6 scrollbar-hide">
+        {COLUMNS.map((column) => (
+          <div key={column.id} className="w-80 flex-shrink-0 flex flex-col space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-tighter">{column.title}</h3>
+                <span className="bg-zinc-800 text-zinc-500 text-[10px] px-2 py-0.5 rounded-full">
+                  {contents.filter(c => c.status === column.id).length}
                 </span>
-                <Badge variant="outline" className="text-[10px] bg-zinc-800/50 border-zinc-700 text-cyan-500">
-                  {columnItems.length}
-                </Badge>
               </div>
+            </div>
 
-              {/* Lista de Tarjetas */}
-              <div className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
-                {columnItems.length === 0 && (
-                  <div className="h-20 border-2 border-dashed border-zinc-800/30 rounded-xl flex items-center justify-center">
-                    <span className="text-[10px] uppercase text-zinc-700 font-bold">Vacío</span>
-                  </div>
-                )}
-
-                {columnItems.map((video) => (
+            <div className="flex-1 space-y-3 p-2 bg-zinc-900/20 rounded-2xl border border-zinc-800/30 overflow-y-auto">
+              {contents
+                .filter((item) => item.status === column.id)
+                .map((video) => (
                   <div
                     key={video.id}
-                    onClick={() => navigate(`/editor?id=${video.id}`)}
-                    className="group p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl hover:border-cyan-500/40 
-                               hover:bg-zinc-800/40 transition-all cursor-pointer relative overflow-hidden"
+                    onClick={() => handleCardClick(video.id)}
+                    className={`group relative p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl transition-all cursor-pointer
+                              ${assignDate ? 'hover:border-cyan-500 ring-offset-2 ring-offset-black hover:ring-2 hover:ring-cyan-500/20' : 'hover:border-zinc-600'}
+                    `}
                   >
-                    {/* Indicador de plataforma */}
                     <div className="flex justify-between items-start mb-2">
-                      <span className="text-[9px] font-mono text-cyan-500/70 px-1.5 py-0.5 border border-cyan-500/20 rounded">
-                        {video.platform.toUpperCase()}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // CRÍTICO: Para que no se abra el editor al querer borrar
-                          if (window.confirm("¿Eliminar esta idea permanentemente?")) {
-                            deleteContent(video.id);
-                          }
-                        }}
-                        className="p-1.5 rounded-md text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-all duration-200"
-                        title="Eliminar idea"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
+                      <Badge variant="outline" className="text-[9px] uppercase bg-zinc-800/50 border-zinc-700 text-zinc-500">
+                        {video.platform}
+                      </Badge>
+                      <button className="text-zinc-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreVertical className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <h4 className="text-sm font-bold text-zinc-200 leading-tight group-hover:text-white transition-colors">
+                    <h4 className="text-sm font-bold text-zinc-200 mb-3 group-hover:text-white transition-colors">
                       {video.title}
                     </h4>
 
-                    {/* Info extra sutil */}
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="flex -space-x-1">
-                        <div className="w-4 h-4 rounded-full bg-zinc-700 border border-zinc-900" />
+                    {/* INDICADOR DE FECHA (Lo que pediste) */}
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-800/50">
+                      {video.publishDate ? (
+                        <div className="flex items-center gap-1.5 text-cyan-400 font-mono text-[10px]">
+                          <CalendarIcon className="w-3 h-3" />
+                          <span>{new Date(video.publishDate).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}</span>
+                        </div>
+                      ) : (
+                        <span className="text-[9px] text-zinc-600 italic">Sin fecha</span>
+                      )}
+
+                      <div className="flex -space-x-2">
+                        {/* Placeholder para avatares o prioridad si quisieras agregar */}
+                        <div className="w-5 h-5 rounded-full bg-zinc-800 border-2 border-zinc-900" />
                       </div>
-                      <span className="text-[10px] text-zinc-600 font-mono">
-                        {video.category}
-                      </span>
                     </div>
                   </div>
                 ))}
-              </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );

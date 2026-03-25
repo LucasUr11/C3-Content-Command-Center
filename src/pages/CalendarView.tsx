@@ -22,24 +22,15 @@ export default function CalendarView() {
   const prevMonth = () => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)));
 
   const handleDayClick = (day: Date, videos: any[]) => {
-  if (videos.length > 0) {
-    navigate(`/editor?id=${videos[0].id}`);
-  } else {
-    // Ya NO mandamos createdAt acá, porque el Hook lo hace por nosotros
-    const createdVideo = addContent({
-      title: "Nueva Idea Tech",
-      platform: "TikTok",
-      status: "Idea",
-      category: "Hardware",
-      script: "",
-      publishDate: day.toISOString(), 
-    });
-    
-    if (createdVideo) {
-      navigate(`/editor?id=${createdVideo.id}`);
+    if (videos.length > 0) {
+      // Si ya hay algo, vamos al editor como siempre
+      navigate(`/editor?id=${videos[0].id}`);
+    } else {
+      // Si está vacío, vamos al Kanban pasando la fecha elegida por URL
+      const dateStr = day.toISOString();
+      navigate(`/kanban?assignDate=${dateStr}`);
     }
-  }
-};
+  };
 
   return (
     <div className="h-full flex flex-col space-y-6 animate-in fade-in duration-500">
@@ -72,34 +63,36 @@ export default function CalendarView() {
 
         {/* Celdas de los días */}
         {calendarDays.map((day, idx) => {
-          const dayVideos = contents.filter(v => v.publishDate && isSameDay(new Date(v.publishDate), day));
+          const dayVideos = contents.filter(v =>
+            v.publishDate && isSameDay(new Date(v.publishDate), day)
+          );
 
           return (
             <div
               key={idx}
-              onClick={() => handleDayClick(day, dayVideos)} // <--- AGREGAMOS ESTO
-              className={`min-h-[120px] p-2 border-t border-zinc-800/30 transition-all cursor-pointer
-        hover:bg-zinc-800/20 group
-        ${!isSameDay(day, monthStart) && day < monthStart ? 'opacity-20' : ''}
-        ${day > monthEnd ? 'opacity-20' : ''}
-        ${isToday(day) ? 'bg-cyan-500/5' : 'bg-zinc-900/20'}
-      `}
+              onClick={() => handleDayClick(day, dayVideos)}
+              className={`min-h-[120px] bg-zinc-900/20 p-2 border-t border-zinc-800/30 transition-all cursor-pointer hover:bg-zinc-800/40 
+                ${!isSameDay(day, monthStart) && day < monthStart ? 'opacity-20' : ''}
+                ${day > monthEnd ? 'opacity-20' : ''}
+                ${isToday(day) ? 'bg-cyan-500/5' : ''}
+              `}
             >
               <div className="flex justify-between items-center">
                 <span className={`text-xs font-mono ${isToday(day) ? 'text-cyan-400 font-bold' : 'text-zinc-600'}`}>
                   {format(day, "d")}
                 </span>
-                {/* Un icono de '+' que aparece al hacer hover si el día está vacío */}
+                {/* Un pequeño '+' visual para indicar que se puede agregar */}
                 {dayVideos.length === 0 && (
-                  <span className="text-cyan-500 opacity-0 group-hover:opacity-100 text-xs">+</span>
+                  <span className="text-cyan-500/0 group-hover:text-cyan-500 text-[10px]">+</span>
                 )}
               </div>
 
+              {/* 2. AGREGAR ESTO: Mapear los videos encontrados */}
               <div className="mt-2 space-y-1">
                 {dayVideos.map(video => (
                   <div
                     key={video.id}
-                    className="text-[9px] p-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded text-cyan-200 truncate font-medium hover:bg-cyan-500/20"
+                    className="text-[9px] p-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded text-cyan-200 truncate font-bold"
                   >
                     {video.title}
                   </div>
