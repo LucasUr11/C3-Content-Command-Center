@@ -1,49 +1,62 @@
 import { useState, useEffect } from 'react';
-import { VideoContent } from '../types/content';
+
+// 1. Definimos la interfaz para que todo el proyecto hable el mismo idioma
+export interface VideoContent {
+    id: string;
+    title: string;
+    platform: 'TikTok' | 'YouTube' | 'Instagram';
+    status: 'Idea' | 'Scripting' | 'Recording' | 'Editing' | 'Published';
+    category: string;
+    script: string;
+    publishDate?: string; // La fecha se guarda como string ISO
+    createdAt: string;
+}
 
 export const useContent = () => {
-    const [contents, setContents] = useState<VideoContent[]>([]);
-
-    // 1. Cargar datos de LocalStorage al montar el componente
-    useEffect(() => {
+    // 2. Cargamos los datos iniciales del localStorage
+    const [contents, setContents] = useState<VideoContent[]>(() => {
         const saved = localStorage.getItem('c3-content-data');
-        if (saved) {
-            try {
-                setContents(JSON.parse(saved));
-            } catch (e) {
-                console.error("Error cargando datos de LocalStorage", e);
-            }
-        }
-    }, []);
+        return saved ? JSON.parse(saved) : [];
+    });
 
-    // 2. Guardar en LocalStorage cada vez que contents cambie
+    // 3. Cada vez que 'contents' cambia, actualizamos el localStorage
     useEffect(() => {
         localStorage.setItem('c3-content-data', JSON.stringify(contents));
     }, [contents]);
 
-    // 3. Función para agregar una nueva idea
+    // 4. Función para agregar contenido (ahora devuelve el objeto creado)
     const addContent = (newVideo: Omit<VideoContent, 'id' | 'createdAt'>) => {
-    const videoWithId: VideoContent = {
-        ...newVideo,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString() // Se genera automáticamente aquí
-    };
-    
-    setContents(prev => [...prev, videoWithId]);
-    return videoWithId;
-};
+        const videoWithId: VideoContent = {
+            ...newVideo,
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+        };
 
-    // 4. Función para actualizar (guiones, estados, etc)
+        setContents((prev) => [...prev, videoWithId]);
+        return videoWithId;
+    };
+
+    // 5. Función para actualizar (Clave para el Calendario y Kanban)
     const updateContent = (id: string, updates: Partial<VideoContent>) => {
-        setContents(prev => prev.map(item =>
-            item.id === id ? { ...item, ...updates } : item
-        ));
+        setContents((prev) => {
+            const newContents = prev.map((item) =>
+                item.id === id ? { ...item, ...updates } : item
+            );
+            // Forzamos el guardado para evitar desfases en la navegación
+            localStorage.setItem('c3-content-data', JSON.stringify(newContents));
+            return newContents;
+        });
     };
 
-    // 5. Función para borrar (por si te arrepentís de una idea)
+    // 6. Función para eliminar
     const deleteContent = (id: string) => {
-        setContents(prev => prev.filter(item => item.id !== id));
+        setContents((prev) => prev.filter((item) => item.id !== id));
     };
 
-    return { contents, addContent, updateContent, deleteContent };
+    return {
+        contents,
+        addContent,
+        updateContent,
+        deleteContent,
+    };
 };
